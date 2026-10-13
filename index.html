@@ -1,0 +1,149 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employees Record System</title>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; padding: 15px; margin: 0; font-family: sans-serif; }
+        h2 { text-align: center; color: #38bdf8; margin-bottom: 20px; }
+        .card { background: #1e293b; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #334155; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 13px; color: #94a3b8; margin-bottom: 4px; }
+        input, select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #0284c7; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        button:hover { background: #0369a1; }
+        
+        .employee-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+        .emp-card { background: #1e293b; border: 1px solid #334155; padding: 12px; border-radius: 8px; display: flex; gap: 12px; align-items: center; }
+        .emp-avatar, .emp-avatar img { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; background: #334155; display: flex; justify-content: center; align-items: center; }
+        .emp-info { flex: 1; font-size: 13px; }
+        .emp-name { font-weight: bold; font-size: 15px; color: #f8fafc; margin-bottom: 4px; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-top: 5px; }
+        .badge-complete { background: #166534; color: #4ade80; }
+        .badge-incomplete { background: #991b1b; color: #fca5a5; }
+    </style>
+</head>
+<body>
+
+    <h2>Employees Record System</h2>
+
+    <div class="card">
+        <h3 style="color: #38bdf8; margin-top: 0;">Add New Staff</h3>
+        <form id="employeeForm">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="fullName" placeholder="Juan Dela Cruz" required>
+            </div>
+            <div class="form-group">
+                <label>Birthday</label>
+                <input type="date" id="birthday" required>
+            </div>
+            <div class="form-group">
+                <label>Gender</label>
+                <select id="gender">
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="email" placeholder="staff@company.com" required>
+            </div>
+            <div class="form-group">
+                <label>Requirements Status</label>
+                <select id="status">
+                    <option value="Complete (IDs Submitted)">Complete (IDs Submitted)</option>
+                    <option value="Incomplete IDs">Incomplete IDs</option>
+                </select>
+            </div>
+            <button type="submit">Save Employee Record</button>
+        </form>
+    </div>
+
+    <h3 style="color: #38bdf8;">Staff Directory</h3>
+    <div class="employee-grid" id="employeeList"></div>
+
+    <script>
+        const API_URL = '/api/employees';
+
+        // Function para i-mask/itago ang bahagi ng pangalan (halimbawa: Ju** D*** C***)
+        function maskName(name) {
+            if (!name) return 'N/A';
+            return name.split(' ').map(part => {
+                if (part.length <= 2) return '**';
+                return part.substring(0, 2) + '*'.repeat(part.length - 2);
+            }).join(' ');
+        }
+
+        async function fetchEmployees() {
+            try {
+                const res = await fetch(API_URL);
+                const data = await res.json();
+                renderEmployees(data);
+            } catch (err) {
+                console.error('Error fetching employees:', err);
+            }
+        }
+
+        function renderEmployees(employees) {
+            const list = document.getElementById('employeeList');
+            list.innerHTML = '';
+
+            employees.forEach(emp => {
+                // Sinisigurong kahit ano mang field ang gamitin ng backend (name o fullName), gagana siya
+                const realName = emp.fullName || emp.name || 'Unknown Staff';
+                const maskedDisplayName = maskName(realName);
+
+                const isComplete = emp.status && emp.status.includes('Complete');
+                const badgeClass = isComplete ? 'badge-complete' : 'badge-incomplete';
+                const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(realName)}`;
+
+                const card = document.createElement('div');
+                card.className = 'emp-card';
+                card.innerHTML = `
+                    <div class="emp-avatar">
+                        <img src="${avatarUrl}" alt="Avatar">
+                    </div>
+                    <div class="emp-info">
+                        <div class="emp-name">${maskedDisplayName}</div>
+                        <div>🎂 ${emp.birthday || 'N/A'} | 👤 ${emp.gender || 'N/A'}</div>
+                        <div>✉️ ${emp.email || 'N/A'}</div>
+                        <span class="badge ${badgeClass}">${emp.status || 'Incomplete'}</span>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        document.getElementById('employeeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const newEmp = {
+                fullName: document.getElementById('fullName').value,
+                birthday: document.getElementById('birthday').value,
+                gender: document.getElementById('gender').value,
+                email: document.getElementById('email').value,
+                status: document.getElementById('status').value
+            };
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newEmp)
+                });
+
+                if (res.ok) {
+                    document.getElementById('employeeForm').reset();
+                    fetchEmployees();
+                }
+            } catch (err) {
+                console.error('Error saving employee:', err);
+            }
+        });
+
+        fetchEmployees();
+    </script>
+</body>
+</html>
+
