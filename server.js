@@ -59,3 +59,15 @@ app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
 });
 
+// DELETE API: Magbura ng employee gamit ang ID
+app.delete('/api/employees/:id', (req, res) => {
+    const { id } = req.params;
+    let employees = getEmployees();
+    
+    // Filter para alisin 'yung employee na tumugma ang ID
+    employees = employees.filter(emp => emp.id != id);
+    
+    saveEmployees(employees);
+    res.json({ message: 'Employee deleted successfully' });
+});
+

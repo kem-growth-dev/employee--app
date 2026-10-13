@@ -143,6 +143,18 @@
         });
 
         fetchEmployees();
+async function deleteEmployee(id) {
+    const pin = prompt("I-enter ang Admin PIN para mag-delete:");
+    
+    // Set ka ng sarili mong secret PIN (hal. 1234)
+    if (pin === "1234") { 
+        await fetch(`/api/employees/${id}`, { method: 'DELETE' });
+        alert("Nababura na ang record!");
+        location.reload(); // Refresh para ma-update ang listahan
+    } else {
+        alert("Maling PIN! Admin lang ang pwedeng magbura.");
+    }
+}
     </script>
 </body>
 </html>
